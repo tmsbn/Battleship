@@ -15,6 +15,7 @@ public class PlayGamePanel extends GamePanel {
     int x, y;
     Player player;
     JButton oceanButtons[][];
+    Ocean otherPlayerOcean;
 
     public PlayGamePanel(Player player) {
 
@@ -108,14 +109,21 @@ public class PlayGamePanel extends GamePanel {
 
     }
 
-    public void setOceanType(char[][] oceanArea) {
+    public void setOceanType(char[][] oceanArea, boolean showAll) {
 
         for (int i = 0; i < oceanButtons.length; i++) {
             for (int j = 0; j < oceanButtons[0].length; j++) {
-                if (oceanArea != null)
-                    oceanButtons[i][j].setText("" + oceanArea[i][j]);
-                else
-                    oceanButtons[i][j].setText(".");
+                if (showAll) {
+                    if (oceanArea != null)
+                        oceanButtons[i][j].setText("" + oceanArea[i][j]);
+                    else
+                        oceanButtons[i][j].setText(".");
+                } else {
+                    if (oceanArea != null && (oceanArea[i][j] == 'O' || oceanArea[i][j] == 'X'))
+                        oceanButtons[i][j].setText("" + oceanArea[i][j]);
+                    else
+                        oceanButtons[i][j].setText(".");
+                }
             }
         }
     }
@@ -124,7 +132,8 @@ public class PlayGamePanel extends GamePanel {
 
         for (int i = 0; i < oceanButtons.length; i++) {
             for (int j = 0; j < oceanButtons[0].length; j++) {
-                oceanButtons[i][j].setText(".");
+                if (!oceanButtons[i][j].getText().equals("O") && !oceanButtons[i][j].getText().equals("X"))
+                    oceanButtons[i][j].setText(".");
             }
         }
     }
@@ -141,14 +150,20 @@ public class PlayGamePanel extends GamePanel {
     public void setShootMode(boolean currentTurn) {
 
         if (currentTurn) {
-            setOceanType(null);
-            infoLabel.setText("Choose location to shoot");
+
+            if (otherPlayerOcean == null)
+                setOceanType(null, true);
+            else
+                setOceanType(otherPlayerOcean.getOceanArea(), false);
+
+            setText("Choose location to shoot", Color.BLACK);
             shootButton.setVisible(true);
             enableOceanButton(true);
         } else {
-            setOceanType(ocean.getOceanArea());
+
+            setOceanType(ocean.getOceanArea(), true);
             shootButton.setVisible(false);
-            infoLabel.setText("Waiting for other player..");
+            setText("Waiting for other player..", Color.BLACK);
             enableOceanButton(false);
         }
         validate();
@@ -158,6 +173,10 @@ public class PlayGamePanel extends GamePanel {
     public void setText(String label, Color color) {
         infoLabel.setText(label);
         infoLabel.setForeground(color);
+    }
+
+    public void updateOtherPlayerOcean(Ocean ocean) {
+        this.otherPlayerOcean = ocean;
     }
 
     /**
@@ -175,13 +194,13 @@ public class PlayGamePanel extends GamePanel {
             ocean.getOceanArea()[x][y] = 'O';
             oceanButtons[x][y].setText("O");
             TextView.printString("\nMISS!!\n");
-            infoLabel.setText("MISS!");
+            setText("MISS!", Color.BLUE);
 
         } else if (Fleet.isAShip(cell)) {
 
             ocean.getOceanArea()[x][y] = 'X';
             oceanButtons[x][y].setText("X");
-            infoLabel.setText("HIT!");
+            setText("HIT!", Color.BLACK);
             TextView.printString("\nHIT!!\n");
             return true;
 

@@ -1,4 +1,5 @@
 import javax.swing.*;
+import java.io.Serializable;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -45,7 +46,7 @@ public class ServerRMI implements RMIServerInterface {
         }
     }
 
-    public void sendToClient(final String line) {
+    public void sendToClient(final String line, final Serializable serializable) {
 
 
         SwingWorker worker = new SwingWorker<Void, Void>() {
@@ -53,7 +54,7 @@ public class ServerRMI implements RMIServerInterface {
             public Void doInBackground() {
                 try {
                     TextView.printStringWithExtraSpace("Waiting for client...");
-                    rmiClientInterface.sendMessage(line);
+                    rmiClientInterface.sendMessage(line, serializable);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -65,8 +66,8 @@ public class ServerRMI implements RMIServerInterface {
     }
 
     @Override
-    public void sendMessage(String message) throws RemoteException {
-        serverInterface.gotResponse(message);
+    public void sendMessage(String message, Serializable serializable) throws RemoteException {
+        serverInterface.gotResponse(message, serializable);
     }
 
     @Override

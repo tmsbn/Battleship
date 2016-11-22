@@ -1,9 +1,10 @@
+import java.io.Serializable;
 import java.util.Scanner;
 
 /**
  * This class controls Ocean functions
  **/
-public class Ocean{
+public class Ocean implements Serializable{
 
     private int height;
     private int width;

@@ -1,3 +1,4 @@
+import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
@@ -6,7 +7,7 @@ import java.rmi.RemoteException;
  */
 public interface RMIServerInterface extends Remote {
 
-    void sendMessage(String message) throws RemoteException;
+    void sendMessage(String message, Serializable serializable) throws RemoteException;
 
     void sendClientObject(RMIClientInterface rmiClientInterface) throws RemoteException;
 }

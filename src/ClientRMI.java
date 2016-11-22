@@ -1,4 +1,5 @@
 import javax.swing.*;
+import java.io.Serializable;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -38,7 +39,6 @@ public class ClientRMI implements RMIClientInterface {
             worker.execute();
 
 
-
         } catch (NotBoundException e) {
             clientInterface.error(e.getMessage());
             e.printStackTrace();
@@ -48,14 +48,14 @@ public class ClientRMI implements RMIClientInterface {
         }
     }
 
-    public void sendToServer(final String line) {
+    public void sendToServer(final String line, final Serializable serializable) {
 
         SwingWorker worker = new SwingWorker<Void, Void>() {
             @Override
             public Void doInBackground() {
                 try {
                     TextView.printStringWithExtraSpace("Waiting for server...");
-                    rmiServerInterface.sendMessage(line);
+                    rmiServerInterface.sendMessage(line, serializable);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -65,12 +65,11 @@ public class ClientRMI implements RMIClientInterface {
         worker.execute();
 
 
-
     }
 
     @Override
-    public void sendMessage(String message) throws RemoteException {
-        clientInterface.responseFromServer(message);
+    public void sendMessage(String message, Serializable serializable) throws RemoteException {
+        clientInterface.responseFromServer(message, serializable);
     }
 
     @Override

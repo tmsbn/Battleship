@@ -1,3 +1,5 @@
+import java.io.Serializable;
+
 /**
  * Created by tmsbn on 11/6/16.
  */
@@ -7,7 +9,7 @@ public interface ServerInterface {
 
     void clientConnected();
 
-    void gotResponse(String line);
+    void gotResponse(String line, Serializable serializable);
 
     void error(String error);
 

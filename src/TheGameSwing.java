@@ -11,6 +11,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -144,7 +145,7 @@ public class TheGameSwing {
 
                         nameServer = name;
                         state = STATE.START_GAME;
-                        serverRMI.sendToClient(nameServer);
+                        serverRMI.sendToClient(nameServer, null);
                     }
                 });
 
@@ -156,7 +157,7 @@ public class TheGameSwing {
             }
 
             @Override
-            public void gotResponse(String line) {
+            public void gotResponse(String line, Serializable serializable) {
 
                 switch (state) {
 
@@ -174,7 +175,7 @@ public class TheGameSwing {
 
                                 TheGameSwing.this.dimen = dimens;
                                 state = STATE.PLAY_GAME;
-                                serverRMI.sendToClient(dimen[0] + "," + dimen[1]);
+                                serverRMI.sendToClient(dimen[0] + "," + dimen[1], null);
                                 Fleet fleet = new Fleet(ocean, ships);
                                 player = new Player(nameServer, fleet);
 
@@ -187,18 +188,22 @@ public class TheGameSwing {
 
                     case PLAY_GAME:
 
-                        if(playGamePanel == null) {
+                        if (playGamePanel == null) {
 
                             playGamePanel = new PlayGamePanel(player);
                             playGamePanel.setPlayGameInterface(new PlayGameInterface() {
                                 @Override
                                 public void shootAtLocation(int x, int y) {
                                     playGamePanel.setShootMode(false);
-                                    serverRMI.sendToClient(x + "," + y);
+                                    serverRMI.sendToClient(x + "," + y, null);
                                 }
                             });
                             gameUI.getGameFrame().addNewPanel(playGamePanel);
                             playGamePanel.setShootMode(true);
+                        }
+
+                        if (serializable != null && serializable instanceof Ocean) {
+                            playGamePanel.updateOtherPlayerOcean((Ocean) serializable);
                         }
 
                         if (line.equals("exit")) {
@@ -218,23 +223,16 @@ public class TheGameSwing {
 
                                         TextView.printString("You LOST! Game over");
                                         playGamePanel.setText("You LOST! Game over", Color.RED);
-                                        serverRMI.sendToClient("exit");
+                                        serverRMI.sendToClient("exit", null);
 
                                     } else
-                                        serverRMI.sendToClient("hit");
+                                        serverRMI.sendToClient("hit", player.getOcean());
 
                                     return;
                                 } else {
                                     player.getOcean().printMap();
-                                    int delay = 2000;
 
-                                    Timer timer = new Timer(delay, new ActionListener() {
-                                        public void actionPerformed(ActionEvent evt) {
-                                            playGamePanel.setShootMode(true);
-                                        }
-                                    });
-                                    timer.setRepeats(false);
-                                    timer.start();
+                                    setDelayedShootMode();
                                 }
 
                             } else if (line.equals("started")) {
@@ -243,7 +241,7 @@ public class TheGameSwing {
                             } else if (line.equals("hit")) {
                                 TextView.printStringWithSeparator("HIT on the other ship!");
                                 playGamePanel.setText("HIT on the other ship!", Color.BLUE);
-                                playGamePanel.setShootMode(true);
+                                setDelayedShootMode();
                             }
 
                         }
@@ -261,6 +259,20 @@ public class TheGameSwing {
 
             }
         });
+    }
+
+    public void setDelayedShootMode() {
+
+        int delay = 2000;
+
+        Timer timer = new Timer(delay, new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                playGamePanel.setShootMode(true);
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+
     }
 
     public void startClient() {
@@ -292,7 +304,7 @@ public class TheGameSwing {
             }
 
             @Override
-            public void responseFromServer(String line) {
+            public void responseFromServer(String line, final Serializable serializable) {
 
                 switch (state) {
                     case START_GAME:
@@ -306,7 +318,7 @@ public class TheGameSwing {
 
                                 nameClient = name;
                                 state = STATE.GOT_NAME;
-                                clientRMI.sendToServer(nameClient);
+                                clientRMI.sendToServer(nameClient, null);
                             }
                         });
 
@@ -326,19 +338,20 @@ public class TheGameSwing {
                             public void gotShipAndOceanInfo(Ship[] ships, Ocean ocean, int[] dimens) {
 
                                 state = STATE.PLAY_GAME;
-                                clientRMI.sendToServer("started");
 
-                                if(playGamePanel == null) {
+                                Fleet fleet = new Fleet(ocean, ships);
+                                player = new Player(nameClient, fleet);
 
-                                    Fleet fleet = new Fleet(ocean, ships);
-                                    player = new Player(nameClient, fleet);
+                                clientRMI.sendToServer("started", player.getOcean());
+
+                                if (playGamePanel == null) {
 
                                     playGamePanel = new PlayGamePanel(player);
                                     playGamePanel.setPlayGameInterface(new PlayGameInterface() {
                                         @Override
                                         public void shootAtLocation(int x, int y) {
                                             playGamePanel.setShootMode(false);
-                                            clientRMI.sendToServer(x + "," + y);
+                                            clientRMI.sendToServer(x + "," + y, player.getOcean());
                                         }
                                     });
                                     playGamePanel.setShootMode(false);
@@ -356,6 +369,10 @@ public class TheGameSwing {
                     case PLAY_GAME:
 
                         playGamePanel.setShootMode(false);
+
+                        if (serializable != null && serializable instanceof Ocean) {
+                            playGamePanel.updateOtherPlayerOcean((Ocean) serializable);
+                        }
 
                         if (line.equals("exit")) {
 
@@ -376,24 +393,16 @@ public class TheGameSwing {
 
                                         TextView.printString("You LOST! Game over");
                                         playGamePanel.setText("You LOST! Game over", Color.RED);
-                                        clientRMI.sendToServer("exit");
+                                        clientRMI.sendToServer("exit", player.getOcean());
 
                                     } else
-                                        clientRMI.sendToServer("hit");
+                                        clientRMI.sendToServer("hit", player.getOcean());
 
                                     break;
 
                                 } else {
                                     player.getOcean().printMap();
-                                    int delay = 2000;
-
-                                    Timer timer = new Timer(delay, new ActionListener() {
-                                        public void actionPerformed(ActionEvent evt) {
-                                            playGamePanel.setShootMode(true);
-                                        }
-                                    });
-                                    timer.setRepeats(false);
-                                    timer.start();
+                                    setDelayedShootMode();
                                 }
 
 
@@ -404,7 +413,7 @@ public class TheGameSwing {
                             } else if (line.equals("hit")) {
                                 TextView.printStringWithSeparator("HIT on the other ship!");
                                 playGamePanel.setText("HIT on the other ship!", Color.BLUE);
-                                playGamePanel.setShootMode(true);
+                                setDelayedShootMode();
                             }
                         }
 
